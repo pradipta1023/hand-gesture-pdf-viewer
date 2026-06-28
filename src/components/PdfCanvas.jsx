@@ -3,20 +3,52 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
 import PageNavigation from "./PageNavigation";
 import ZoomControls from "./ZoomControls";
+import useHandTracking from "../hooks/useHandTracking";
+import MotionTracker from "../gesture/MotionTracker";
+import SwipeDetector from "../gesture/SwipeDetector";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const PdfCanvas = () => {
     const canvasRef = useRef(null);
     const pdfRef = useRef(null);
-
+    const motionTracker = useRef(new MotionTracker());
+    const swipeDetector = useRef(new SwipeDetector());
+    const handleHandsRef = useRef(null);
     const renderIdRef = useRef(0);
 
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.5);
     const [numPages, setNumPages] = useState(0);
+    const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
 
-    const pdfUrl = "/sample.pdf";
+    handleHandsRef.current = (landmarks) => {
+        const hand = landmarks[0];
+
+        if (!hand) return;
+
+        const motion = motionTracker.current.update(hand);
+
+        const gesture = swipeDetector.current.detect(motion);
+
+        console.log("Motion:", motion);
+        if (!gesture) return;
+        console.log(`Gesture detected: ${gesture}`);
+
+        switch (gesture) {
+            case "NEXT_PAGE":
+                nextPage();
+                break;
+
+            case "PREVIOUS_PAGE":
+                prevPage();
+                break;
+        }
+    };
+
+    const videoRef = useHandTracking(handleHandsRef.current);
+
+
 
     const nextPage = () => {
         if (pageNumber < numPages) {
@@ -33,13 +65,15 @@ const PdfCanvas = () => {
     useEffect(() => {
         const loadPdf = async () => {
             const loadingTask = pdfjsLib.getDocument({ url: pdfUrl });
+
             pdfRef.current = await loadingTask.promise;
             setNumPages(pdfRef.current.numPages);
+
             requestRender();
         };
 
         loadPdf();
-    }, []);
+    }, [pdfUrl]);
 
     // RENDER PAGE
     const renderPage = async (pdf, pageNumber, scale, renderId) => {
@@ -95,6 +129,7 @@ const PdfCanvas = () => {
         <PageNavigation onPrev={prevPage} onNext={nextPage} />
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} scale={scale} />
         <center>
+            <video ref={videoRef} style={{ display: "none" }} />
             <canvas ref={canvasRef}></canvas>
         </center>
     </>;
