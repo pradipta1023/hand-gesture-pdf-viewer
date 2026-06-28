@@ -6,6 +6,7 @@ import ZoomControls from "./ZoomControls";
 import useHandTracking from "../hooks/useHandTracking";
 import MotionTracker from "../gesture/MotionTracker";
 import SwipeDetector from "../gesture/SwipeDetector";
+import PanDetector from "../gesture/PanDetector";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -14,6 +15,7 @@ const PdfCanvas = () => {
     const pdfRef = useRef(null);
     const motionTracker = useRef(new MotionTracker());
     const swipeDetector = useRef(new SwipeDetector());
+    const panDetector = useRef(new PanDetector());
     const handleHandsRef = useRef(null);
     const renderIdRef = useRef(0);
 
@@ -34,19 +36,33 @@ const PdfCanvas = () => {
 
         const gesture = swipeDetector.current.detect(motion);
 
-        console.log("Motion:", motion);
-        if (!gesture) return;
-        console.log(`Gesture detected: ${gesture}`);
+        const panGesture = panDetector.current.detect(motion);
 
-        switch (gesture) {
-            case "NEXT_PAGE":
-                nextPage();
-                break;
-
-            case "PREVIOUS_PAGE":
-                prevPage();
-                break;
+        if (panGesture) {
+            switch (panGesture) {
+                case "MOVE_UP":
+                    setOffset((prev) => ({ ...prev, y: prev.y - 100 }));
+                    break;
+                case "MOVE_DOWN":
+                    setOffset((prev) => ({ ...prev, y: prev.y + 100 }));
+                    break;
+            }
         }
+
+        if (gesture) {
+            switch (gesture) {
+                case "NEXT_PAGE":
+                    setOffset({ x: 0, y: 0 });
+                    nextPage();
+                    break;
+
+                case "PREVIOUS_PAGE":
+                    setOffset({ x: 0, y: 0 });
+                    prevPage();
+                    break;
+            }
+        }
+
     };
 
     const videoRef = useHandTracking(handleHandsRef.current);
