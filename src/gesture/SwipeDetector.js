@@ -1,43 +1,44 @@
-// gesture/SwipeDetector.js
-
 class SwipeDetector {
     constructor() {
         this.startX = null;
-        this.lastSwipeTime = 0;
-
-        this.SWIPE_THRESHOLD = 0.15;
-        this.COOLDOWN = 800;
+        this.locked = false;
+        this.THRESHOLD = 0.15;
     }
 
     detect(motion) {
-        const now = Date.now();
+        if (this.locked) return null;
 
-        if (now - this.lastSwipeTime < this.COOLDOWN) {
-            return null;
-        }
+        const { current } = motion;
 
         if (this.startX === null) {
-            this.startX = motion.current.x;
+            this.startX = current.x;
             return null;
         }
 
-        const distance = motion.current.x - this.startX;
+        const distance = current.x - this.startX;
 
-        if (distance > this.SWIPE_THRESHOLD) {
-            this.startX = motion.current.x;
-            this.lastSwipeTime = now;
-
+        // NEXT PAGE
+        if (distance > this.THRESHOLD) {
+            this.triggerLock();
             return "NEXT_PAGE";
         }
 
-        if (distance < -this.SWIPE_THRESHOLD) {
-            this.startX = motion.current.x;
-            this.lastSwipeTime = now;
-
+        // PREVIOUS PAGE
+        if (distance < -this.THRESHOLD) {
+            this.triggerLock();
             return "PREVIOUS_PAGE";
         }
 
         return null;
+    }
+
+    triggerLock() {
+        this.locked = true;
+        this.startX = null;
+
+        setTimeout(() => {
+            this.locked = false;
+        }, 500); // your 300–400ms idea
     }
 }
 

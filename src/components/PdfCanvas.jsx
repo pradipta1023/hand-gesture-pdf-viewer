@@ -21,6 +21,9 @@ const PdfCanvas = () => {
     const [scale, setScale] = useState(1.5);
     const [numPages, setNumPages] = useState(0);
     const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
+    const [offset, setOffset] = useState({ x: 0, y: 0, });
+
+
 
     handleHandsRef.current = (landmarks) => {
         const hand = landmarks[0];
@@ -47,8 +50,6 @@ const PdfCanvas = () => {
     };
 
     const videoRef = useHandTracking(handleHandsRef.current);
-
-
 
     const nextPage = () => {
         if (pageNumber < numPages) {
@@ -93,7 +94,8 @@ const PdfCanvas = () => {
 
         const renderContext = {
             canvasContext: context,
-            viewport
+            viewport,
+            transform: [1, 0, 0, 1, offset.x, offset.y],
         };
 
         await page.render(renderContext).promise;
@@ -115,7 +117,7 @@ const PdfCanvas = () => {
     // REACT TRIGGERS
     useEffect(() => {
         requestRender();
-    }, [pageNumber, scale]);
+    }, [pageNumber, scale, offset]);
 
     const zoomIn = () => {
         setScale((prevScale) => Math.min(prevScale + 0.1, 3));
@@ -128,6 +130,17 @@ const PdfCanvas = () => {
     return <>
         <PageNavigation onPrev={prevPage} onNext={nextPage} />
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} scale={scale} />
+        <button onClick={() =>
+            setOffset(prev => ({ ...prev, y: prev.y - 50 }))
+        }>
+            Up
+        </button>
+
+        <button onClick={() =>
+            setOffset(prev => ({ ...prev, y: prev.y + 50 }))
+        }>
+            Down
+        </button>
         <center>
             <video ref={videoRef} style={{ display: "none" }} />
             <canvas ref={canvasRef}></canvas>
